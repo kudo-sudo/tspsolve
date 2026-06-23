@@ -53,11 +53,12 @@ int makeRandomTour(int *tour, int N) {
     }
 }
 //tourとかを受け取ってその時の座標を１行ずつファイルに出力する
-int printCoords(int current_i, int total_I, int current_cost, int *tour, City *cities, char *instance_name) {
-    char filename[30];
+int printCoords(int current_i, int total_I, int current_cost, int *tour, City *cities, char *instance_name, char *prefix) {
+    char filename[64];
     FILE *fp;
+
+    sprintf(filename, "%s-%d.dat", prefix, current_i);
     
-    sprintf(filename, "random-tour-%d.dat", current_i);
     if ((fp = fopen(filename, "w")) == NULL) {
         fprintf(stderr, "File open error: %s\n", filename);
         exit(1);
@@ -94,7 +95,7 @@ int randomSearch(int I, int *tour, int N, int *tour_temp, City *cities, char *in
         }
         printf("%d %d\n", i, c);
         if (i % interval == 0) {
-            printCoords(i, I, c, tour, cities, instance_name);
+            printCoords(i, I, c, tour, cities, instance_name,"random-tour");
         }
         i++;
     }
@@ -115,62 +116,46 @@ int Hill_climbing_swap(int *tour, int N,City *cities,char *instance_name, char *
     int interval = 10;
     
     while (1) {
-        int best_delta = 0;
-        int best_i = -1, best_j = -1;
+    int best_cost = c;
+    int best_i = -1, best_j = -1;
 
-        for (int i = 0; i < N; i++) {
-            for (int j = i + 1; j < N; j++) {
-                int prev_i = (i == 0) ? N - 1 : i - 1;
-                int next_i = (i + 1) % N;
-                int prev_j = (j == 0) ? N - 1 : j - 1;
-                int next_j = (j + 1) % N;
+    for (int i = 0; i < N; i++) {
+        for (int j = i + 1; j < N; j++) {
+            // 実際に交換してみる
+            int tmp = tour[i];
+            tour[i] = tour[j];
+            tour[j] = tmp;
 
-                int old_cost, new_cost;
-                if (next_i == j) {
-                    old_cost = cost(tour[prev_i], tour[i])
-                             + cost(tour[i],      tour[j])
-                             + cost(tour[j],      tour[next_j]);
-                    new_cost = cost(tour[prev_i], tour[j])
-                             + cost(tour[j],      tour[i])
-                             + cost(tour[i],      tour[next_j]);
-                } else {
-                    old_cost = cost(tour[prev_i], tour[i])
-                             + cost(tour[i],      tour[next_i])
-                             + cost(tour[prev_j], tour[j])
-                             + cost(tour[j],      tour[next_j]);
-                    new_cost = cost(tour[prev_i], tour[j])
-                             + cost(tour[j],      tour[next_i])
-                             + cost(tour[prev_j], tour[i])
-                             + cost(tour[i],      tour[next_j]);
-                }
-
-                int delta = new_cost - old_cost;
-                if (delta < best_delta) {
-                    best_delta = delta;
-                    best_i = i;
-                    best_j = j;
-                }
+            int c_temp = calc_cost(tour, N);
+            if (c_temp < best_cost) {
+                best_cost = c_temp;
+                best_i = i;
+                best_j = j;
             }
-        }
 
-        if (best_i == -1){
-            break;
-        } 
-
-        int tmp = tour[best_i];
-        tour[best_i] = tour[best_j];
-        tour[best_j] = tmp;
-        c += best_delta;
-        step++;
-
-        printf("%d %d\n", step,c);
-
-        if(step % interval == 0){
-            printCoords(step, 0,c,tour,cities,instance_name);
+            // 元に戻す
+            tmp = tour[i];
+            tour[i] = tour[j];
+            tour[j] = tmp;
         }
     }
 
-    printCoords(step, 0,c,tour,cities,instance_name);
+    if (best_i == -1) break;
+
+    // 最良の交換を適用
+    int tmp = tour[best_i];
+    tour[best_i] = tour[best_j];
+    tour[best_j] = tmp;
+    c = best_cost;
+    step++;
+
+    printf("%d %d\n", step, c);
+    if (step % interval == 0) {
+        printCoords(step, 0, c, tour, cities, instance_name, "hill-climbing-tour");
+    }
+}
+
+    printCoords(step, 0,c,tour,cities,instance_name,"hill-climbing-tour");
     printf("# Final Best Cost: %d\n", c);
     return c;
 }
@@ -186,52 +171,64 @@ int Hill_climbing_2opt(int *tour,int N,City *cities, char *instance_name,char *n
     printf("# output: step cost\n");
     printf("0 %d\n", c);
 
-int step = 0;
-int interval = 10;
+    int step = 0;
+    int interval = 10;
 
     while(1){
-        int best_delta = 0;
+        int best_cost = c;
         int best_i = -1, best_j = -1;
 
-        for(int i=0;i<N;i++){
-            for(int j=i+1;j<N;j++){
-                int prev_i = (i == 0) ? N - 1 : i - 1;
-                int next_j = (j + 1) % N;
+        for(int i = 0; i < N; i++){
+            for(int j = i + 1; j < N; j++){
+                // i〜j を反転してみる
+                int left = i, right = j;
+                while(left < right){
+                    int tmp = tour[left];
+                    tour[left] = tour[right];
+                    tour[right] = tmp;
+                    left++;
+                    right--;
+                }
 
-                int old_cost, new_cost;
-                old_cost = (cost(tour[prev_i],tour[i])+cost(tour[j],tour[next_j]));
-                new_cost = (cost(tour[prev_i],tour[j])+cost(tour[i],tour[next_j]));
-
-                int delta = new_cost - old_cost;
-                if (delta < best_delta) {
-                    best_delta = delta;
+                int c_temp = calc_cost(tour, N);
+                if(c_temp < best_cost){
+                    best_cost = c_temp;
                     best_i = i;
                     best_j = j;
                 }
+
+                // 元に戻す（もう一度反転）
+                left = i; right = j;
+                while(left < right){
+                    int tmp = tour[left];
+                    tour[left] = tour[right];
+                    tour[right] = tmp;
+                    left++;
+                    right--;
+                }
             }
         }
-        if (best_i == -1){
-            break;
-        } 
 
+        if(best_i == -1) break;
+
+        // 最良の反転を適用
         int left = best_i, right = best_j;
         while(left < right){
-            int temp = tour[left];
+            int tmp = tour[left];
             tour[left] = tour[right];
-            tour[right] = temp;
+            tour[right] = tmp;
             left++;
             right--;
         }
-        c += best_delta;
+        c = best_cost;
         step++;
 
-        printf("%d %d\n", step,c);
+        printf("%d %d\n", step, c);
         if(step % interval == 0){
-            printCoords(step, 0, c, tour, cities, instance_name);
-
+            printCoords(step, 0, c, tour, cities, instance_name, "hill-climbing-tour");
         }
     }
-    printCoords(step, 0, c, tour, cities, instance_name);  // ← 追加
+    printCoords(step, 0, c, tour, cities, instance_name,"hill-climbing-tour");
     printf("# Final Best Cost: %d\n", c); 
     return c;
 }
@@ -294,6 +291,7 @@ int main(int argc, char *argv[]) {
             cost_matrix[i] = (int *)malloc(sizeof(int) * i);
         }
     }
+ 
     
     // 実際に計算してコストを表に入れている
     for (int i = 0; i < N; i++) {
