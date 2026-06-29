@@ -122,13 +122,13 @@ int randomSearch(int I, int *tour, int N, int *tour_temp, City *cities, char *in
         clock_t end = clock();
         total_time += (double)(end -start) / CLOCKS_PER_SEC;
 
-        printf("%f %d\n", total_time, c);
-        //printf("%d %d\n", i,c);
-        //if (i % interval == 0) {
-            //printCoords(i, I, c, tour, cities, instance_name,"random-tour");
-        //}
+        printf("%d %f %d\n", i,total_time, c);
+        if (i % interval == 0) {
+            printCoords(i, I, c, tour, cities, instance_name,"random-tour");
+        }
         i++;
     }
+    printCoords(I, I, c, tour, cities, instance_name, "random-tour");
     return c;
 }
 
