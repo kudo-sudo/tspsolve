@@ -407,12 +407,12 @@ int main(int argc, char *argv[]) {
         char buf[100];
         fscanf(fp, "%s", buf);
         if (strcmp("DIMENSION", buf) == 0) {
+            fscanf(fp, "%s", buf); // ":" をスキップ
             break;
         }
         if (strcmp("DIMENSION:", buf) == 0)
             break;
     } while (1);
-
     // 都市数を取得
     fscanf(fp, "%d", &N);
 
@@ -475,7 +475,8 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Error: iterations must be positive.\n");
             exit(1);
         }
-        randomSearch(iterations, tour, N, tour_temp, cities, instance_name);
+        int best = randomSearch(iterations, tour, N, tour_temp, cities, instance_name);
+        printf("# Final Best Cost: %d\n", best);
 
     } else if (strcmp(algorithm, "hc") == 0 || strcmp(algorithm, "hill-climbing") == 0) {
         if (argc < 4) {
@@ -485,9 +486,11 @@ int main(int argc, char *argv[]) {
         }
         char *neighborhood = argv[3];
         if (strcmp(neighborhood, "swap") == 0) {
-            Hill_climbing_swap(tour, N, cities, instance_name, neighborhood);
+            int best = Hill_climbing_swap(tour, N, cities, instance_name, neighborhood);
+            printf("# Final Best Cost: %d\n", best);
         } else if (strcmp(neighborhood, "2-opt") == 0) {
-            Hill_climbing_2opt(tour, N, cities, instance_name, neighborhood);
+            int best = Hill_climbing_2opt(tour, N, cities, instance_name, neighborhood);
+            printf("# Final Best Cost: %d\n", best);
         } else {
             fprintf(stderr, "Error: Unknown neighborhood '%s'.\n", neighborhood);
             fprintf(stderr, "Supported: swap, 2-opt\n");
@@ -504,6 +507,7 @@ int main(int argc, char *argv[]) {
         int R = N;//デフォ
 
         load_config(argv[3], &T,&alpha,&R);
+        fprintf(stderr, "# debug: T=%f alpha=%f R=%d N=%d\n", T, alpha, R, N);
     int best = Simulated_annealing(tour,N,cities,instance_name,T,alpha,R);
     printf("# Final Best Cost: %d\n",best);
     } else {
